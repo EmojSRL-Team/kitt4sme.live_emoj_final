@@ -1,0 +1,102 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: emoj-frontend
+  name: emoj-frontend-svc
+spec:
+  ports:
+  - name: http
+    port: 4200
+    protocol: TCP
+    targetPort: 4200
+  selector:
+    app: emoj-frontend
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: emoj-frontend
+  name: emoj-frontend-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emoj-frontend
+  template:
+    metadata:
+      labels:
+        app: emoj-frontend
+    spec:
+      initContainers:
+        - name: emojdbfrontendinit
+          image: 768927817436.dkr.ecr.eu-south-1.amazonaws.com/kitt4sme-db-init:latest
+          imagePullPolicy: Always
+          env:
+          - name: AWS_ACCOUNT
+            valueFrom:
+              secretKeyRef:
+                name: emoj-secret
+                key: aws.account
+          - name: AWS_REGION
+            valueFrom:
+              secretKeyRef:
+                name: emoj-secret
+                key: aws.region
+          - name: POSTGRES_HOST
+            value: "emoj-db"
+          - name: POSTGRES_PORT
+            value: "5432"
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: emoj-secret
+                key: postgreshego.password
+          - name: POSTGRES_INITPASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: emoj-secret
+                key: postgresemoj.password
+      containers:
+        - image: 768927817436.dkr.ecr.eu-south-1.amazonaws.com/kitt4sme-dashboard:latest
+          imagePullPolicy: Always
+          name: emoj-frontend
+          ports:
+          - containerPort: 4200
+            name: http
+          env:
+          - name: AWS_ACCOUNT
+            valueFrom:
+              secretKeyRef:
+                name: emoj-secret
+                key: aws.account
+          - name: AWS_REGION
+            valueFrom:
+              secretKeyRef:
+                name: emoj-secret
+                key: aws.region
+          - name: EMOJ_BACKEND
+            value: "http://emoj-backend:5000"
+          - name: POSTGRES_HOST
+            value: "emoj-db"
+          - name: POSTGRES_PORT
+            value: "5432"
+          - name: POSTGRES_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: emoj-secret
+                key: postgreshego.password
+          - name: VIDEO_PATH
+            value: "/app/videos"
+          volumeMounts:
+            - mountPath: /app/videos
+              name: emoj-frontend-pvc
+      imagePullSecrets:
+        - name: regcred
+      volumes:
+        - name: emoj-frontend-pvc
+          persistentVolumeClaim:
+            claimName: emoj-frontend-pvc

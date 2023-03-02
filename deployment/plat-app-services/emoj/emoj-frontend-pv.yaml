@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: emoj-frontend-pv
+  labels:
+    type: local
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  claimRef:
+    namespace: default
+    name: emoj-frontend-pvc
+  hostPath:
+    path: "/home/ubuntu/Desktop/media/video"
+    type: DirectoryOrCreate
+
+
